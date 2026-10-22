@@ -29,9 +29,9 @@ Recipients review, understand, test and meaningfully improve their assigned code
 commit their actual work under their own identities, push to their forks and open
 PRs targeting `PantelisZara/java-currency-converter:main`. Follow
 [Contributing](../CONTRIBUTING.md) for remote setup, synchronization and review.
-PantelisZara reviews, coordinates and merges PRs after review and CI. A supplied
-package alone does not count as a student's contribution; record human work and
-any required AI assistance disclosure under the university's submission rules.
+PantelisZara reviews, coordinates and merges PRs after review and CI. Record each
+member's actual implementation, improvements, tests and review contributions;
+identify supplied code separately from that work.
 
 ## Coordination and delivery
 

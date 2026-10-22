@@ -83,6 +83,6 @@ verify GUI operation or Windows packaging.
 Record actual implementation, tests, reviews, integration and pairing work.
 Confirm contributor identities and credit with the people involved. Do not
 attribute work to another student, invent activity, or mark assignments complete
-before their acceptance criteria are met. Follow the university's AI-use and
-submission rules, including required disclosure of assistance and accurate human
-contribution records. Commit only your actual work under your own identity.
+before their acceptance criteria are met. Record the origin of supplied code and
+distinguish implementation, improvements and review contributions. Follow the
+university's submission requirements, including any required disclosures.
