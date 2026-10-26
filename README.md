@@ -1,19 +1,23 @@
 # Java Currency Converter
 
-A university team project for a desktop currency converter, owned and led
-by [PantelisZara](https://github.com/PantelisZara). The team consists of five students.
+A JavaFX desktop currency converter built by a five-student university team.
 
-**Deadline: October 29, 2026, 18:00 Europe/Athens.**
+**Project Lead and repository owner:** [PantelisZara](https://github.com/PantelisZara)  
+**Submission deadline:** October 29, 2026, 18:00 Europe/Athens.
 
-## Implementation status
+## Features
 
-The application currently opens a resizable JavaFX window with a project title
-and an implementation-status message. Currency conversion and API access are
-not implemented.
+- Convert positive amounts between EUR, USD, GBP, CHF and JPY using the latest available reference rate returned by the Frankfurter v2 API.
+- Show the converted amount, exchange rate and rate date.
+- Swap the source and target currencies.
+- Convert a currency to itself without making a network request.
+- Validate amounts and display loading, success and actionable error states.
+- Run network requests away from the JavaFX application thread and ignore results from outdated requests.
+- Use `BigDecimal` arithmetic and `HALF_UP` rounding to the target currency's configured precision: two decimal places for EUR, USD, GBP and CHF; zero for JPY.
 
-The Maven build, wrapper, JUnit dependency and Linux/Windows CI workflow are in
-place. There are currently **zero automated tests**: the test phase has no test
-sources to execute. Meaningful tests will be added alongside application behavior.
+Amounts must be greater than zero, use a decimal point, contain no more than 12 integer digits and have no more than 4 decimal places. If a request fails, check the connection and try **Convert currency** again.
+
+Frankfurter provides reference exchange rates, not live trading quotes. Conversion requires internet access.
 
 ## Technologies
 
@@ -21,21 +25,16 @@ sources to execute. Meaningful tests will be added alongside application behavio
 | --- | --- |
 | Java | JDK 21 LTS |
 | JavaFX | 21.0.13 |
-| Maven | 3.9.16 through Maven Wrapper 3.3.4 |
-| JUnit Jupiter | 5.14.4, test scope |
-| Gson | 2.14.0, prepared for future API response parsing |
-| JavaFX Maven Plugin | 0.0.8, desktop launch |
-| Java HttpClient | Built into Java 21; planned HTTP client |
-| Frankfurter API | v2; planned exchange-rate provider |
+| Maven | 3.9.16 through Maven Wrapper |
+| Maven Wrapper | 3.3.4 |
+| JUnit Jupiter | 5.14.4 |
+| Gson | 2.14.0 |
+| Java HttpClient | HTTP requests and timeouts |
+| Frankfurter API | v2 reference rates |
 
-The development environment is Arch Linux. The target desktop environment is
-Windows 11. No separate Maven installation or JavaFX SDK is required.
+## Build, test and run from source
 
-## Build and run
-
-Install JDK 21 and set `JAVA_HOME` to its installation directory. The first build
-requires internet access to download Maven and dependencies. The wrapper pins
-Maven and verifies the downloaded distribution's SHA-256 checksum.
+Install a JDK 21 and set `JAVA_HOME`. The first Maven Wrapper run requires internet access to download Maven and project dependencies. A graphical desktop session is required to launch the JavaFX application.
 
 ### Linux
 
@@ -53,47 +52,43 @@ Maven and verifies the downloaded distribution's SHA-256 checksum.
 .\mvnw.cmd javafx:run
 ```
 
-A graphical desktop session is required for `javafx:run`. Confirm the title and
-status message are visible, resize the window, and close it to check shutdown.
+The integration test suite contains 83 JUnit tests: 27 API, 42 domain and 14 controller tests. GitHub Actions runs the Maven build and tests on Ubuntu and Windows. CI does not by itself verify the visual desktop experience or the packaged Windows application.
 
-The optional `app-image` Maven profile copies runtime dependencies to
-`target/package-input` during packaging. It prepares inputs for future packaging;
-it does not create a Java runtime, Windows launcher or installer. The bootstrap
-application does not use Gson or call the API yet.
+## Build a portable Windows x64 distribution
 
-## Planned functionality
+Build the Windows package on Windows 11 x64 with a Windows x64 JDK 21. Cross-packaging the Windows application from Linux is not supported.
 
-- Source and target currency selection, amount input, and result display.
-- Frankfurter v2 rate retrieval, including rate-date metadata and useful errors.
-- Decimal conversion with an explicit precision and rounding policy.
-- Input validation, currency swapping, loading states, and retry behavior.
-- Background requests that keep the JavaFX application thread responsive.
-- A Windows 11 distribution and final integration verification.
+```powershell
+$env:JAVA_HOME = "C:\Path\To\jdk-21"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+.\scripts\package-windows.ps1
+```
 
-The planned endpoint is <https://api.frankfurter.dev/v2/rate/EUR/USD>.
-Its contract will be verified during API integration; the current application
-does not contact it.
+The script runs Maven verification, checks that the required Windows JavaFX libraries are present, creates a `jpackage` app image, compresses it to a ZIP and writes a SHA-256 checksum. The default output is:
 
-## Team workflow
+- `target\windows-dist\CurrencyConverter\CurrencyConverter.exe`
+- `target\windows-dist\CurrencyConverter-windows-x64.zip`
+- `target\windows-dist\CurrencyConverter-windows-x64.zip.sha256`
 
-Work is tracked in [GitHub Issues](https://github.com/PantelisZara/java-currency-converter/issues).
-Agree on ownership and contracts before implementation. The four additional
-students fork this public repository and create short-lived branches in their
-forks. Each student receives their assigned handoff package, reviews, understands,
-tests and meaningfully improves the code, then commits actual work under their
-own identity and opens a focused PR to `PantelisZara/java-currency-converter:main`.
-No collaborator invitations are required. Another team member reviews each PR;
-PantelisZara reviews, coordinates and merges after review and CI.
+Extract the ZIP and launch `CurrencyConverter\CurrencyConverter.exe`. The packaged app image includes its Java runtime, so a separate JDK and Maven installation should not be needed to launch it; internet access is still required for exchange rates. The package is a portable app image, not a Windows installer.
 
-See [Contributing](CONTRIBUTING.md), [Architecture](docs/ARCHITECTURE.md), and
-[Team](docs/TEAM.md) for development rules and responsibilities.
+A team member is responsible for the Windows 11 package and clean-machine smoke test. Record the tested source SHA, JDK/OS details, archive checksum and actual outcomes before claiming that the packaged build has been verified. If Windows-specific issues appear, fix them and repeat the checks.
+
+## Architecture and team workflow
+
+- `api`: Frankfurter requests, response validation, timeouts and API errors.
+- `domain`: currency and rate models, amount validation, conversion and rounding.
+- `ui`: JavaFX view, input state, asynchronous controller and user feedback.
+- `CurrencyConverterApp`: wires the components together and closes background work and the HTTP client during shutdown.
+- `Launcher`: entry point for `jpackage`.
+
+See [Architecture](docs/ARCHITECTURE.md), [Team and contribution records](docs/TEAM.md), [Verification record](docs/VERIFICATION.md) and [Contributing](CONTRIBUTING.md).
+
+Work is tracked through [GitHub Issues](https://github.com/PantelisZara/java-currency-converter/issues) and reviewed pull requests. Contribution records identify the actual GitHub PR authors; handoff packages or AI-assisted changes alone do not prove independent authorship. Follow the course's teamwork and AI-use rules.
 
 ## Known limitations
 
-- No rate client, conversion rules, controller, currency selectors, validation,
-  swap behavior, or custom styling exists yet.
-- JUnit is configured, but there are no automated tests or coverage claims.
-- CI builds on Ubuntu and Windows; it does not launch a desktop or verify
-  Windows 11 usability.
-- The JAR in `target/` is not a self-contained desktop distribution. Packaging
-  and clean Windows 11 verification are separate delivery tasks.
+- The application requires the Frankfurter service and an internet connection for different-currency conversions.
+- The Windows app-image build and clean-machine run must be performed on Windows. The current CI workflow tests compilation and unit tests, not GUI behavior.
+- A Linux `jpackage` smoke image launched in the local OpenJDK 21.0.12.1 environment but crashed during native launcher shutdown; the Maven JavaFX launcher exited normally. The project targets the portable Windows x64 package, not a Linux native distribution.
+- The ZIP is generated locally by the packaging script and is not committed to the repository.
