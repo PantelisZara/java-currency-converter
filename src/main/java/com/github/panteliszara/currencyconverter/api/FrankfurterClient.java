@@ -20,14 +20,23 @@ import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
 
+/** Blocking Frankfurter v2 client that validates the returned pair, positive rate, and date. */
 public final class FrankfurterClient implements ExchangeRateProvider {
+    /** Default HTTP connection timeout. */
     public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    /** Default HTTP request timeout. */
     public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
     private static final Gson JSON = new GsonBuilder().setStrictness(Strictness.STRICT).create();
     private final HttpClient client;
     private final URI endpoint;
     private final Duration timeout;
 
+    /**
+     * Uses the public Frankfurter endpoint and the default request timeout.
+     *
+     * @param client HTTP client with connection settings supplied by the caller
+     * @throws NullPointerException if the client is null
+     */
     public FrankfurterClient(HttpClient client) {
         this(client, URI.create("https://api.frankfurter.dev/v2/rate/"), REQUEST_TIMEOUT);
     }
@@ -38,6 +47,16 @@ public final class FrankfurterClient implements ExchangeRateProvider {
         this.timeout = Objects.requireNonNull(timeout);
     }
 
+    /**
+     * Fetches and validates a rate synchronously, propagating interruptions.
+     *
+     * @param base non-null currency being exchanged
+     * @param quote non-null currency whose units express the rate
+     * @return validated rate and effective date
+     * @throws ExchangeRateException on a timeout, I/O failure, non-200 status, or invalid response
+     * @throws InterruptedException if the HTTP request is interrupted
+     * @throws NullPointerException if either currency is null
+     */
     @Override
     public ExchangeRate fetch(Currency base, Currency quote) throws ExchangeRateException, InterruptedException {
         Objects.requireNonNull(base);

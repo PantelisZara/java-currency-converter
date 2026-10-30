@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import java.net.http.HttpClient;
 import java.util.concurrent.Executors;
 
+/** Wires the JavaFX view, controller, HTTP client, and background worker. */
 public final class CurrencyConverterApp extends Application {
     private ConversionController controller;
     private HttpClient httpClient;
@@ -32,13 +33,14 @@ public final class CurrencyConverterApp extends Application {
         view.onInputChanged(controller::inputChanged);
         view.onConvert(() -> controller.convert(view.input()));
         view.onSwap(() -> view.setInput(view.input().swapped()));
-        double height = Math.min(880, Screen.getPrimary().getVisualBounds().getHeight() - 80);
-        stage.setScene(new Scene(view.root(), 780, height));
+        double height = Math.min(620, Screen.getPrimary().getVisualBounds().getHeight() - 80);
+        stage.setScene(new Scene(view.root(), 720, height));
         stage.setMinWidth(680);
         stage.setMinHeight(520);
         stage.show();
     }
 
+    /** Cancels conversion work and shuts down HTTP resources without waiting on the UI thread. */
     @Override
     public void stop() {
         if (controller != null) {

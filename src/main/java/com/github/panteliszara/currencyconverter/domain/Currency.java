@@ -1,5 +1,6 @@
 package com.github.panteliszara.currencyconverter.domain;
 
+/** Supported ISO currency codes, display names, and fraction digits used for rounding. */
 public enum Currency {
     EUR("Euro", 2),
     USD("US Dollar", 2),

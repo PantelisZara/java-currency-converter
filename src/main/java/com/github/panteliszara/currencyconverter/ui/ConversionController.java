@@ -13,6 +13,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
+/**
+ * Validates input and fetches rates in a worker, discarding stale completions.
+ * Construction, public calls, dispatched completions, and display callbacks require the UI thread.
+ */
 public final class ConversionController implements AutoCloseable {
     private final ExchangeRateProvider rates;
     private final ConversionService conversions;
@@ -20,11 +24,21 @@ public final class ConversionController implements AutoCloseable {
     private final Consumer<Runnable> dispatch;
     private final Consumer<ConversionState> display;
     private ConversionInput input;
-    private ConversionState state = new ConversionState(ConversionState.Status.IDLE, "Ready when you are.", null);
+    private ConversionState state = new ConversionState(ConversionState.Status.IDLE, "", null);
     private Future<?> pending;
     private long generation;
     private boolean closed;
 
+    /**
+     * Creates a controller and displays the idle state.
+     *
+     * @param rates blocking rate provider used by the worker
+     * @param conversions amount validation and decimal calculation rules
+     * @param worker executor owned and shut down by this controller
+     * @param dispatch queues completion callbacks onto the UI thread
+     * @param display receives each state on the UI thread
+     * @throws NullPointerException if any dependency is null
+     */
     public ConversionController(ExchangeRateProvider rates, ConversionService conversions,
                                 ExecutorService worker, Consumer<Runnable> dispatch,
                                 Consumer<ConversionState> display) {
@@ -36,15 +50,27 @@ public final class ConversionController implements AutoCloseable {
         display.accept(state);
     }
 
+    /**
+     * Cancels pending work and clears old results; does nothing after closure.
+     *
+     * @param updated current input snapshot
+     */
     public void inputChanged(ConversionInput updated) {
         if (closed) {
             return;
         }
         cancelPending();
         input = updated;
-        publish(new ConversionState(ConversionState.Status.IDLE, "Inputs changed. Convert to see a new result.", null));
+        publish(new ConversionState(ConversionState.Status.IDLE, "", null));
     }
 
+    /**
+     * Validates and converts input, fetching a rate only for different currencies.
+     * Ignores duplicate pending requests and calls after closure; displays errors on failure.
+     *
+     * @param requested input snapshot to convert
+     * @throws NullPointerException if requested is null while the controller is open
+     */
     public void convert(ConversionInput requested) {
         if (closed || state.status() == ConversionState.Status.LOADING && Objects.equals(input, requested)) {
             return;
@@ -65,7 +91,7 @@ public final class ConversionController implements AutoCloseable {
             publish(success(conversions.sameCurrency(amount, requested.source())));
             return;
         }
-        publish(new ConversionState(ConversionState.Status.LOADING, "Fetching the latest available rate…", null));
+        publish(new ConversionState(ConversionState.Status.LOADING, "Loading rate…", null));
         long requestGeneration = generation;
         try {
             pending = worker.submit(() -> fetch(requested, amount, requestGeneration));
@@ -117,9 +143,10 @@ public final class ConversionController implements AutoCloseable {
     }
 
     private static ConversionState success(ConversionResult result) {
-        return new ConversionState(ConversionState.Status.SUCCESS, "Conversion complete.", result);
+        return new ConversionState(ConversionState.Status.SUCCESS, "", result);
     }
 
+    /** Invalidates queued completions, interrupts pending work, and shuts down the worker without waiting. */
     @Override
     public void close() {
         closed = true;
