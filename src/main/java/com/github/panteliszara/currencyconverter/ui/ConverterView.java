@@ -21,22 +21,25 @@ import javafx.scene.layout.VBox;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/** JavaFX controls and result rendering; all access belongs on the JavaFX application thread. */
 public final class ConverterView {
     private final TextField amount = new TextField("100.00");
     private final ComboBox<Currency> source = new ComboBox<>();
     private final ComboBox<Currency> target = new ComboBox<>();
-    private final Button swap = new Button("⇄  Swap");
-    private final Button convert = new Button("Convert currency");
-    private final TextArea result = new TextArea("—");
-    private final Label resultContext = new Label("Your next conversion will appear here.");
-    private final Label rate = new Label("Rate: —");
-    private final Label date = new Label("Rate date: —");
+    private final Button swap = new Button("Swap");
+    private final Button convert = new Button("Convert");
+    private final TextArea result = new TextArea();
+    private final Label rate = new Label();
+    private final Label date = new Label();
     private final Label feedback = new Label();
     private final ProgressIndicator progress = new ProgressIndicator();
     private final ScrollPane root;
+    private final HBox status;
+    private final VBox resultBox;
     private Consumer<ConversionInput> inputChanged = ignored -> { };
     private boolean settingInput;
 
+    /** Creates the form with EUR to USD selected and no result displayed. */
     public ConverterView() {
         amount.setId("amount");
         amount.setPromptText("e.g. 125.50");
@@ -62,16 +65,12 @@ public final class ConverterView {
             event.consume();
         });
 
-        Label eyebrow = label("DAILY EXCHANGE RATES", "eyebrow");
         Label title = label("Currency Converter", "title");
-        Label subtitle = label("Five currencies. One straightforward conversion.", "subtitle");
-        VBox header = new VBox(10, eyebrow, title, subtitle);
-        header.getStyleClass().add("header");
 
         Label amountLabel = label("Amount", "field-label");
         amountLabel.setLabelFor(amount);
         VBox amountField = new VBox(9, amountLabel, amount,
-                label("Use a decimal point · up to 4 decimal places", "hint"));
+                label("Use a decimal point; up to 4 decimal places", "hint"));
         Label sourceLabel = label("From", "field-label");
         sourceLabel.setLabelFor(source);
         Label targetLabel = label("To", "field-label");
@@ -104,11 +103,10 @@ public final class ConverterView {
         progress.setMaxSize(20, 20);
         progress.setMinSize(20, 20);
         progress.setAccessibleText("Retrieving exchange rate");
-        HBox status = new HBox(10, progress, feedback);
+        status = new HBox(10, progress, feedback);
         status.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(feedback, Priority.ALWAYS);
         VBox form = new VBox(18, amountField, currencies, convert, status);
-        form.getStyleClass().add("card");
 
         result.setId("converted-amount");
         result.setEditable(false);
@@ -118,21 +116,15 @@ public final class ConverterView {
         result.setPrefHeight(80);
         result.setAccessibleText("Converted amount");
         result.getStyleClass().add("result-amount");
-        resultContext.getStyleClass().add("subtitle");
-        resultContext.setWrapText(true);
         rate.setId("exchange-rate");
         date.setId("rate-date");
         rate.setWrapText(true);
         date.setWrapText(true);
-        rate.getStyleClass().add("rate");
         date.getStyleClass().add("hint");
-        VBox resultCard = new VBox(10, label("CONVERTED AMOUNT", "eyebrow"), result,
-                resultContext, rate, date);
-        resultCard.getStyleClass().addAll("card", "result-card");
-        Label footer = label("Reference rates from Frankfurter · not live trading quotes", "hint");
-        VBox page = new VBox(20, header, form, resultCard, footer);
+        resultBox = new VBox(8, result, rate, date);
+        VBox page = new VBox(20, title, form, resultBox);
         page.getStyleClass().add("page");
-        page.setMaxWidth(900);
+        page.setMaxWidth(720);
         VBox centered = new VBox(page);
         centered.setAlignment(Pos.TOP_CENTER);
         root = new ScrollPane(centered);
@@ -145,7 +137,7 @@ public final class ConverterView {
         amount.textProperty().addListener((observable, oldValue, newValue) -> changed());
         source.valueProperty().addListener((observable, oldValue, newValue) -> changed());
         target.valueProperty().addListener((observable, oldValue, newValue) -> changed());
-        render(new ConversionState(ConversionState.Status.IDLE, "Ready when you are.", null));
+        render(new ConversionState(ConversionState.Status.IDLE, "", null));
     }
 
     public Parent root() {
@@ -156,6 +148,11 @@ public final class ConverterView {
         return new ConversionInput(amount.getText(), source.getValue(), target.getValue());
     }
 
+    /**
+     * Replaces all fields and sends a single input-change notification.
+     *
+     * @param input values to display, for example after swapping currencies
+     */
     public void setInput(ConversionInput input) {
         settingInput = true;
         try {
@@ -186,6 +183,12 @@ public final class ConverterView {
         }
     }
 
+    /**
+     * Displays loading, error, or result data and clears any previous result.
+     *
+     * @param state latest controller state
+     * @throws IllegalStateException if called outside the JavaFX application thread
+     */
     public void render(ConversionState state) {
         if (!Platform.isFxApplicationThread()) {
             throw new IllegalStateException("View updates must run on the JavaFX application thread.");
@@ -194,27 +197,32 @@ public final class ConverterView {
         progress.setVisible(loading);
         progress.setManaged(loading);
         convert.setDisable(loading);
-        convert.setText(loading ? "Converting…" : "Convert currency");
         feedback.setText(state.message());
+        boolean showStatus = loading || !state.message().isBlank();
+        status.setVisible(showStatus);
+        status.setManaged(showStatus);
         feedback.getStyleClass().remove("error");
         if (state.status() == ConversionState.Status.ERROR) {
             feedback.getStyleClass().add("error");
         }
-        if (state.status() == ConversionState.Status.SUCCESS) {
+        boolean success = state.status() == ConversionState.Status.SUCCESS;
+        resultBox.setVisible(success);
+        resultBox.setManaged(success);
+        if (success) {
             ConversionResult value = state.result();
-            result.setText(value.convertedAmount().toPlainString() + " " + value.target().name());
-            resultContext.setText(value.amount().toPlainString() + " " + value.source().name()
-                    + " → " + value.target().name());
+            result.setText(value.amount().toPlainString() + " " + value.source().name()
+                    + " = " + value.convertedAmount().toPlainString() + " " + value.target().name());
             rate.setText("1 " + value.source().name() + " = " + value.rate().stripTrailingZeros().toPlainString()
                     + " " + value.target().name());
             date.setText(value.rateDate().map(day -> "Rate date: " + day)
-                    .orElse("Rate date: Not applicable (same currency; no network request)"));
+                    .orElse(""));
         } else {
-            result.setText("—");
-            resultContext.setText("Your next conversion will appear here.");
-            rate.setText("Rate: —");
-            date.setText("Rate date: —");
+            result.clear();
+            rate.setText("");
+            date.setText("");
         }
+        date.setVisible(!date.getText().isEmpty());
+        date.setManaged(date.isVisible());
     }
 
     private static Label label(String text, String style) {

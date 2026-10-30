@@ -6,9 +6,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+/** Validates positive amounts and calculates conversions with half-up currency rounding. */
 public final class ConversionService {
     private static final Pattern AMOUNT = Pattern.compile("[0-9]{1,12}(?:\\.[0-9]{1,4})?");
 
+    /**
+     * Parses a positive plain-decimal amount after stripping surrounding whitespace.
+     * Accepts up to 12 integer digits and four decimal places, without grouping or exponents.
+     *
+     * @param text amount entered by the user
+     * @return validated amount with the entered decimal scale preserved
+     * @throws IllegalArgumentException if the input is missing, malformed, zero, or out of bounds
+     */
     public BigDecimal parseAmount(String text) {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("Enter an amount.");
@@ -23,6 +32,15 @@ public final class ConversionService {
         return amount;
     }
 
+    /**
+     * Multiplies an amount by a dated rate and rounds half up to the quote currency's scale.
+     *
+     * @param amount positive amount with at most 12 integer digits and four decimal places
+     * @param rate non-null rate defining the source and target currencies
+     * @return rounded conversion with the supplied rate and date
+     * @throws IllegalArgumentException if the amount is null, nonpositive, or out of bounds
+     * @throws NullPointerException if the rate is null
+     */
     public ConversionResult convert(BigDecimal amount, ExchangeRate rate) {
         validateAmount(amount);
         Objects.requireNonNull(rate, "Exchange rate is required");
@@ -31,6 +49,15 @@ public final class ConversionService {
                 rate.value(), Optional.of(rate.date()));
     }
 
+    /**
+     * Rounds a same-currency amount half up without fetching a rate.
+     *
+     * @param amount positive amount with at most 12 integer digits and four decimal places
+     * @param currency non-null source and target currency
+     * @return conversion with a unit rate and no rate date
+     * @throws IllegalArgumentException if the amount is null, nonpositive, or out of bounds
+     * @throws NullPointerException if the currency is null
+     */
     public ConversionResult sameCurrency(BigDecimal amount, Currency currency) {
         validateAmount(amount);
         Objects.requireNonNull(currency, "Currency is required");
