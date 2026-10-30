@@ -23,7 +23,6 @@ Windows PowerShell:
 .\mvnw.cmd javadoc:javadoc
 ```
 
-Generated JavaDoc: `target/site/apidocs/index.html` (not committed).
 For a bundled Windows x64 app, run `.\scripts\package-windows.ps1` with Windows x64 JDK 21.
 Extract `target/windows-dist/CurrencyConverter-windows-x64.zip` and run
 `CurrencyConverter/CurrencyConverter.exe`; keep the whole folder. Java is included.
@@ -36,14 +35,7 @@ Extract `target/windows-dist/CurrencyConverter-windows-x64.zip` and run
 - [LympPs1](https://github.com/LympPs1) — JavaFX view ([#12](https://github.com/PantelisZara/java-currency-converter/pull/12)).
 - [fotistsalis7-ux](https://github.com/fotistsalis7-ux) — controller ([#11](https://github.com/PantelisZara/java-currency-converter/pull/11)).
 
-PR records identify accounts, not independent authorship of every supplied line.
-Credit supplied or AI-generated code separately and follow course disclosure rules.
 
-## Notes
-
-Amounts: positive decimals, up to 12 integer digits and 4 decimal places.
-Results use `HALF_UP`: 2 places for EUR/USD/GBP/CHF, 0 for JPY.
-Other pairs need internet; reference rates may predate today and exclude bank fees/spreads.
 No cache or automatic retry. The ordinary JAR has no bundled runtime.
 Windows compatibility was tested successfully by the team.
 Physical keyboard, screen-reader and scaling checks are not independently verified here.
