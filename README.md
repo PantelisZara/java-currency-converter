@@ -36,7 +36,3 @@ Extract `target/windows-dist/CurrencyConverter-windows-x64.zip` and run
 - [fotistsalis7-ux](https://github.com/fotistsalis7-ux) — controller ([#11](https://github.com/PantelisZara/java-currency-converter/pull/11)).
 
 
-No cache or automatic retry. The ordinary JAR has no bundled runtime.
-Windows compatibility was tested successfully by the team.
-Physical keyboard, screen-reader and scaling checks are not independently verified here.
-[Earlier verification](https://github.com/PantelisZara/java-currency-converter/pull/13) records a Linux packaged-launcher shutdown crash, not retested.
